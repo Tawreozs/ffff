@@ -189,7 +189,7 @@ async function uploadDirectFromClient(
   addStep('Начало прямой выгрузки на GitHub из браузера', 'info');
   try {
     addStep('Считывание свежего SHA-хеша...', 'info');
-    let sha: string | null = localStorage.getItem(`github_sha_${cleanRepo}_${cleanPath}`);
+    let sha: string | null = null;
 
     try {
       const shaUrl = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
@@ -212,10 +212,18 @@ async function uploadDirectFromClient(
         }
       } else if (shaRes.status === 404) {
         sha = null;
+      } else {
+        let errMessage = `Код ответа GitHub при запросе SHA: ${shaRes.status}`;
+        try {
+          const errorJson = await shaRes.json();
+          errMessage = errorJson.message || errMessage;
+        } catch {}
+        throw new Error(errMessage);
       }
     } catch (e: any) {
       console.error('Full GitHub fetch error:', e);
-      addStep('Используем локальный кэш SHA из-за ошибки сети.', 'info');
+      addStep(`Не удалось получить свежий SHA-хеш с GitHub: ${e?.message || String(e)}`, 'error');
+      throw e;
     }
 
     const jsonString = JSON.stringify(db, null, 2);
@@ -236,6 +244,8 @@ async function uploadDirectFromClient(
     console.log('Repo:', cleanRepo);
     console.log('Path:', cleanPath);
     console.log('Token length:', cleanToken.length);
+    console.log('PUT SHA:', body.sha);
+    console.log('LATEST SHA:', sha);
 
     const res = await fetch(url, {
       method: 'PUT',
