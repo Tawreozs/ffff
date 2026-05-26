@@ -27,8 +27,15 @@ export interface GithubTestResult {
 async function testGithubTokenDirectly(token: string, repo: string): Promise<GithubTestResult> {
   const cleanToken = token.trim();
   const cleanRepo = repo.trim();
+  const cleanPath = 'N/A';
   try {
-    const userRes = await fetch('https://api.github.com/user', {
+    const userUrl = 'https://api.github.com/user';
+    console.log('GitHub URL:', userUrl);
+    console.log('Repo:', cleanRepo);
+    console.log('Path:', cleanPath);
+    console.log('Token length:', cleanToken.length);
+
+    const userRes = await fetch(userUrl, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': `token ${cleanToken}`
@@ -45,7 +52,13 @@ async function testGithubTokenDirectly(token: string, repo: string): Promise<Git
     const userData = await userRes.json();
     const username = userData.login || 'Пользователь';
 
-    const repoRes = await fetch(`https://api.github.com/repos/${cleanRepo}`, {
+    const repoUrl = `https://api.github.com/repos/${cleanRepo}`;
+    console.log('GitHub URL:', repoUrl);
+    console.log('Repo:', cleanRepo);
+    console.log('Path:', cleanPath);
+    console.log('Token length:', cleanToken.length);
+
+    const repoRes = await fetch(repoUrl, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': `token ${cleanToken}`
@@ -72,8 +85,9 @@ async function testGithubTokenDirectly(token: string, repo: string): Promise<Git
 
     return { success: true, username: `${username} (Полный доступ)` };
   } catch (e: any) {
-    console.error('Github auth test directly failed', e);
-    return { success: false, error: `Сбой сети при связи с GitHub напрямую: ${e?.message || e}` };
+    console.error('Full GitHub fetch error:', e);
+    const errorStr = `${e?.name || 'Error'}: ${e?.message || String(e)}`;
+    return { success: false, error: `Сбой сети при связи с GitHub напрямую: ${errorStr}` };
   }
 }
 
@@ -106,7 +120,13 @@ async function downloadDirectFromClient(token: string, repo: string, path: strin
   addStep('Начало прямого скачивания с GitHub через браузер', 'info');
   try {
     addStep(`Запрос файла "${cleanPath}" в репозитории "${cleanRepo}"...`, 'info');
-    const res = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`, {
+    const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
+    console.log('GitHub URL:', url);
+    console.log('Repo:', cleanRepo);
+    console.log('Path:', cleanPath);
+    console.log('Token length:', cleanToken.length);
+
+    const res = await fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': `token ${cleanToken}`,
@@ -147,7 +167,8 @@ async function downloadDirectFromClient(token: string, repo: string, path: strin
     addStep('База успешно скачана из GitHub напрямую и расшифрована!', 'success');
     return { success: true, exists: true, data, steps };
   } catch (e: any) {
-    const errorStr = e?.message || String(e);
+    console.error('Full GitHub fetch error:', e);
+    const errorStr = `${e?.name || 'Error'}: ${e?.message || String(e)}`;
     addStep(`Отказ при прямом скачивании с GitHub: ${errorStr}`, 'error');
     return { success: false, exists: false, data: null, error: errorStr, steps };
   }
@@ -175,7 +196,13 @@ async function uploadDirectFromClient(
     let sha: string | null = localStorage.getItem(`github_sha_${cleanRepo}_${cleanPath}`);
 
     try {
-      const shaRes = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`, {
+      const shaUrl = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
+      console.log('GitHub URL:', shaUrl);
+      console.log('Repo:', cleanRepo);
+      console.log('Path:', cleanPath);
+      console.log('Token length:', cleanToken.length);
+
+      const shaRes = await fetch(shaUrl, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
           'Authorization': `token ${cleanToken}`,
@@ -192,7 +219,8 @@ async function uploadDirectFromClient(
       } else if (shaRes.status === 404) {
         sha = null;
       }
-    } catch {
+    } catch (e: any) {
+      console.error('Full GitHub fetch error:', e);
       addStep('Используем локальный кэш SHA из-за ошибки сети.', 'info');
     }
 
@@ -209,7 +237,13 @@ async function uploadDirectFromClient(
     }
 
     addStep('Отправка PUT-запроса коммита напрямую...', 'info');
-    const res = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`, {
+    const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
+    console.log('GitHub URL:', url);
+    console.log('Repo:', cleanRepo);
+    console.log('Path:', cleanPath);
+    console.log('Token length:', cleanToken.length);
+
+    const res = await fetch(url, {
       method: 'PUT',
       headers: {
         'Accept': 'application/vnd.github.v3+json',
@@ -237,7 +271,8 @@ async function uploadDirectFromClient(
     addStep('Коммит успешно отправлен напрямую!', 'success');
     return { success: true, steps };
   } catch (e: any) {
-    const errorStr = e?.message || String(e);
+    console.error('Full GitHub fetch error:', e);
+    const errorStr = `${e?.name || 'Error'}: ${e?.message || String(e)}`;
     addStep(`Ошибка прямой отправки на GitHub: ${errorStr}`, 'error');
     return { success: false, error: errorStr, steps };
   }
