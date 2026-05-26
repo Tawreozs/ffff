@@ -3,7 +3,9 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.svg'
+  '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -29,8 +31,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let API requests bypass the cache so they always hit the actual database/express routes
-  if (event.request.url.includes('/api/')) {
+  // Let API requests and cloud operations bypass the cache so they always hit the actual network
+  if (
+    event.request.url.includes('/api/') ||
+    event.request.url.includes('api.github.com') ||
+    event.request.url.includes('yandex.net')
+  ) {
     return;
   }
 
