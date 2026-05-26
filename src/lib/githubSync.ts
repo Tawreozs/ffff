@@ -122,14 +122,11 @@ async function downloadDirectFromClient(token: string, repo: string, path: strin
     addStep(`Запрос файла "${cleanPath}" в репозитории "${cleanRepo}"...`, 'info');
     const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
     console.log('GitHub URL:', url);
-    console.log('Repo:', cleanRepo);
-    console.log('Path:', cleanPath);
     console.log('Token length:', cleanToken.length);
 
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `token ${cleanToken}`,
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       }
