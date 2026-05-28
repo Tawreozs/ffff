@@ -655,7 +655,7 @@ export default function App() {
           </span>
         </div>
 
-        {/* Yandex Sync Buttons and Indicators */}
+        {/* Cloud Sync Buttons and Indicators */}
         <div className="flex items-center gap-2">
           {/* Mobile Install PWA Button */}
           <button
@@ -666,11 +666,11 @@ export default function App() {
             <Smartphone size={14} className={deferredPrompt ? "animate-pulse" : ""} />
           </button>
 
-          {ydToken && (
+          {isCloudActive() && (
             <button
               onClick={async () => {
                 showToast('Синхронизация...', 'info');
-                await triggerCloudSync(items, partsText, deletedIds, ydToken);
+                await triggerCloudSync(items, partsText, deletedIds);
                 showToast('Синхронизировано!', 'success');
               }}
               className={`p-2 rounded-lg bg-[#222222] border border-[#2d2d2d] text-neutral-300 hover:text-white cursor-pointer transition-all active:scale-95 flex items-center justify-center ${
@@ -682,7 +682,7 @@ export default function App() {
             </button>
           )}
 
-          {/* Yandex Settings shortcut indicator */}
+          {/* Settings shortcut indicator */}
           <button
             onClick={() => setIsYdOpen(true)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold select-none cursor-pointer duration-300 transition-all active:scale-95 ${
@@ -691,7 +691,7 @@ export default function App() {
               syncStatus === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
               'bg-[#1a1a1a] border-[#2b2b2b] text-amber-500'
             }`}
-            title="Настройки Яндекс.Диска"
+            title={syncProvider === 'github' ? 'Настройки GitHub' : 'Настройки Яндекс.Диска'}
           >
             <Cloud size={14} className={syncStatus === 'syncing' ? 'animate-bounce' : ''} />
             <span className="font-mono text-[9px]">
@@ -716,13 +716,14 @@ export default function App() {
         activeCount={activeItems.length}
         archiveCount={archivedItems.length}
         syncStatus={syncStatus}
+        syncProvider={syncProvider}
         onBackupImport={handleBackupImport}
         onBackupExport={handleBackupExport}
         onOpenYandexSettings={() => setIsYdOpen(true)}
         onOpenPwaInstaller={() => setIsPwaOpen(true)}
-        onForceSync={ydToken ? async () => {
+        onForceSync={isCloudActive() ? async () => {
           showToast('Синхронизация...', 'info');
-          await triggerCloudSync(items, partsText, deletedIds, ydToken);
+          await triggerCloudSync(items, partsText, deletedIds);
           showToast('Синхронизировано!', 'success');
         } : undefined}
       />

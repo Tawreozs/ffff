@@ -10,6 +10,7 @@ interface SidebarProps {
   activeCount: number;
   archiveCount: number;
   syncStatus: 'syncing' | 'synced' | 'local' | 'error';
+  syncProvider?: 'yandex' | 'github' | 'manual';
   onBackupImport: (file: File) => Promise<void>;
   onBackupExport: () => void;
   onOpenYandexSettings: () => void;
@@ -25,6 +26,7 @@ export default function Sidebar({
   activeCount,
   archiveCount,
   syncStatus,
+  syncProvider = 'yandex',
   onBackupImport,
   onBackupExport,
   onOpenYandexSettings,
@@ -179,11 +181,15 @@ export default function Sidebar({
             <button
               onClick={onOpenYandexSettings}
               className="flex-1 flex items-center justify-between text-[10px] tracking-wider uppercase font-mono hover:bg-[#222222] p-1.5 rounded transition-all cursor-pointer group text-left border border-transparent hover:border-[#2b2b2b]"
-              title="Открыть настройки облачной синхронизации Яндекс.Диска"
+              title={syncProvider === 'github' ? 'Открыть настройки GitHub' :
+                     syncProvider === 'yandex' ? 'Открыть настройки Яндекс.Диска' :
+                     'Открыть настройки синхронизации'}
             >
               <span className="text-neutral-500 flex items-center gap-1 group-hover:text-neutral-300">
-                <Cloud size={10} className="text-yellow-500" />
-                ОБЛАКО ЯНДЕКС
+                <Cloud size={10} className={syncProvider === 'github' ? 'text-blue-400' : 'text-yellow-500'} />
+                {syncProvider === 'github' ? 'ОБЛАКО GITHUB' :
+                 syncProvider === 'yandex' ? 'ОБЛАКО ЯНДЕКС' :
+                 'БЕЗ ИНТЕРНЕТА'}
               </span>
               <span className={`font-bold flex items-center gap-1 ${
                 syncStatus === 'synced' ? 'text-emerald-400' :
