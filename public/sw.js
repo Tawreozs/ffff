@@ -1,4 +1,4 @@
-const CACHE_NAME = 'repair-new-cache-v1';
+const CACHE_NAME = 'repair-new-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   'index.html',
@@ -11,7 +11,14 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      // Use Promise.allSettled to ensure that a single asset fetch failure does not break the entire service worker installation.
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((asset) =>
+          cache.add(asset).catch((err) => {
+            console.warn(`Failed to cache PWA asset during install: ${asset}`, err);
+          })
+        )
+      );
     }).then(() => self.skipWaiting())
   );
 });

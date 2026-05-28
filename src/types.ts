@@ -3,6 +3,7 @@ export interface RepairItem {
   model: string;
   reason: string;
   date: string; // formats as DD.MM.YYYY, optionally HH:MM:SS
+  archivedDate?: string; // дата отправления в архив
   contact: string;
   contact2?: string;
   name?: string;

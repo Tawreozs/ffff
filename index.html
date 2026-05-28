@@ -24,6 +24,21 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+          // Unregister any old/conflicting root service workers that were accidentally loaded from domain root
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (let registration of registrations) {
+              const currentPath = window.location.pathname; // e.g., "/ffff/"
+              const swScope = new URL(registration.scope).pathname; // e.g., "/"
+              
+              // If we are in a subfolder but the registered service worker's scope is the root "/", unregister it to avoid conflict
+              if (swScope === '/' && currentPath !== '/') {
+                console.log('Unregistering conflicting root service worker:', registration.scope);
+                registration.unregister();
+              }
+            }
+          }).catch((e) => console.error('Error cleaning up old service workers:', e));
+
+          // Now register the correct relative service worker
           navigator.serviceWorker.register('sw.js')
             .then((reg) => {
               console.log('PWA Service Worker registered successfully with scope:', reg.scope);

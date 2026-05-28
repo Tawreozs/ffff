@@ -183,7 +183,7 @@ export default function App() {
         if (downloadResult.exists && downloadResult.data) {
           const remoteDb = downloadResult.data;
           const remoteItems = remoteDb.items || [];
-          const remotePartsText = remoteDb.partsText || '';
+          const remotePartsText = remoteDb.partsText !== undefined ? remoteDb.partsText : '';
           const localIds = new Set(currentItems.map(i => i.id));
           const hasNewIncomingItems = remoteItems.length === 0 ? false : remoteItems.some(item => !localIds.has(item.id));
           const hasNewPartsText = remotePartsText !== currentParts && remotePartsText !== '';
@@ -300,7 +300,7 @@ export default function App() {
         if (downloadResult.exists && downloadResult.data) {
           const remoteDb = downloadResult.data;
           const remoteItems = remoteDb.items || [];
-          const remotePartsText = remoteDb.partsText || '';
+          const remotePartsText = remoteDb.partsText !== undefined ? remoteDb.partsText : '';
           const localIds = new Set(currentItems.map(i => i.id));
           const hasNewIncomingItems = remoteItems.length === 0 ? false : remoteItems.some(item => !localIds.has(item.id));
           const hasNewPartsText = remotePartsText !== currentParts && remotePartsText !== '';
@@ -526,9 +526,23 @@ export default function App() {
   // Move a repair ticket to archive state
   const handleArchiveItem = async (id: string) => {
     let targetItem: RepairItem | undefined;
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const formattedArchiveDate = `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
+
     const updatedItems = items.map(item => {
       if (item.id === id) {
-        targetItem = { ...item, status: 'archived' as const, updatedAt: Date.now() };
+        targetItem = { 
+          ...item, 
+          status: 'archived' as const, 
+          archivedDate: formattedArchiveDate,
+          updatedAt: Date.now() 
+        };
         return targetItem;
       }
       return item;
@@ -552,7 +566,8 @@ export default function App() {
     let targetItem: RepairItem | undefined;
     const updatedItems = items.map(item => {
       if (item.id === id) {
-        targetItem = { ...item, status: 'active' as const, updatedAt: Date.now() };
+        const { archivedDate, ...rest } = item;
+        targetItem = { ...rest, status: 'active' as const, updatedAt: Date.now() };
         return targetItem;
       }
       return item;

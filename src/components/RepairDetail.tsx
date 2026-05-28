@@ -107,7 +107,7 @@ export default function RepairDetail({
             </div>
 
             {/* Metadata Fields Card Deck */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 bg-[#1a1a1a] p-3 sm:p-4 rounded-xl border border-[#242424] mb-4">
+            <div className={`grid grid-cols-2 ${item.status === 'archived' ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 sm:gap-6 bg-[#1a1a1a] p-3 sm:p-4 rounded-xl border border-[#242424] mb-4`}>
               <div>
                 <span className="block text-[10px] uppercase font-mono tracking-wider text-neutral-500">
                   Модель
@@ -146,6 +146,17 @@ export default function RepairDetail({
                   {item.date}
                 </span>
               </div>
+              {item.status === 'archived' && (
+                <div>
+                  <span className="block text-[10px] uppercase font-mono tracking-wider text-neutral-500">
+                    Дата отправки в архив
+                  </span>
+                  <span className="text-sm font-sans text-amber-500 mt-1 block flex items-center gap-1">
+                    <Calendar size={12} className="text-amber-500/80" />
+                    {item.archivedDate || '—'}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Financial Info Card row */}
@@ -397,6 +408,20 @@ export default function RepairDetail({
                   className="w-full bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg p-2.5 text-sm text-neutral-100 focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
+
+              {item.status === 'archived' && (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-400 mb-1">
+                    Дата отправки в архив
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.archivedDate || ''}
+                    onChange={(e) => setFormData({ ...formData, archivedDate: e.target.value })}
+                    className="w-full bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg p-2.5 text-sm text-neutral-100 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-neutral-400 mb-1">

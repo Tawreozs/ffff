@@ -125,7 +125,19 @@ export default function RepairList({
                           <span className="text-neutral-600 font-bold">·</span>
                         </>
                       )}
-                      <span>{item.date}</span>
+                      {tab === 'archive' ? (
+                        <>
+                          <span className="text-neutral-400">Приём: {item.date}</span>
+                          {item.archivedDate && (
+                            <>
+                              <span className="text-neutral-600 font-bold">·</span>
+                              <span className="text-amber-500 font-medium">Архив: {item.archivedDate}</span>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <span>{item.date}</span>
+                      )}
                       {item.name && (
                         <>
                           <span className="text-neutral-600 font-bold">·</span>

@@ -245,7 +245,7 @@ export function mergeDatabases(
   mergedPartsUpdatedAt: number;
 } {
   const remoteItems = remoteDb.items || [];
-  const remotePartsText = remoteDb.partsText || '';
+  const remotePartsText = remoteDb.partsText !== undefined ? remoteDb.partsText : '';
   const remoteDeletedIds = remoteDb.deletedIds || [];
   const remotePartsUpdatedAt = remoteDb.partsUpdatedAt || 0;
   const actualLocalPartsUpdatedAt = localPartsUpdatedAt || 0;
@@ -296,7 +296,7 @@ export function mergeDatabases(
   // Resolve parts conflict: if remote edit timestamp is not clear, we edit partsText
   const mergedPartsText = actualLocalPartsUpdatedAt >= remotePartsUpdatedAt
     ? localPartsText
-    : (remotePartsText || localPartsText);
+    : (remoteDb.partsText !== undefined ? remoteDb.partsText : localPartsText);
 
   const mergedPartsUpdatedAt = Math.max(actualLocalPartsUpdatedAt, remotePartsUpdatedAt);
 

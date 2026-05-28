@@ -2,7 +2,7 @@
   "name": "Repair NEW",
   "short_name": "Repair NEW",
   "description": "Учёт ремонтов телефонов и запчастей",
-  "start_url": "./",
+  "start_url": "index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#121212",
