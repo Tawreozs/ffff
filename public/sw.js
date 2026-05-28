@@ -1,11 +1,11 @@
 const CACHE_NAME = 'repair-new-cache-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon.svg',
-  '/icon-192.png',
-  '/icon-512.png'
+  './',
+  'index.html',
+  'manifest.json',
+  'icon.svg',
+  'icon-192.png',
+  'icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
       });
     }).catch(() => {
       // Fallback in case of absolute offline and missing cache
-      return caches.match('/index.html');
+      return caches.match('index.html');
     })
   );
 });
