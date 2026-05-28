@@ -5,6 +5,7 @@ export interface CloudDatabase {
   partsText: string;
   deletedIds?: string[];
   updatedAt: number;
+  partsUpdatedAt?: number;
 }
 
 // Check if a file exists on Yandex.Disk
@@ -235,15 +236,19 @@ export function mergeDatabases(
   localItems: RepairItem[],
   localPartsText: string,
   localDeletedIds: string[],
-  remoteDb: CloudDatabase
+  remoteDb: CloudDatabase,
+  localPartsUpdatedAt?: number
 ): {
   mergedItems: RepairItem[];
   mergedPartsText: string;
   mergedDeletedIds: string[];
+  mergedPartsUpdatedAt: number;
 } {
   const remoteItems = remoteDb.items || [];
   const remotePartsText = remoteDb.partsText || '';
   const remoteDeletedIds = remoteDb.deletedIds || [];
+  const remotePartsUpdatedAt = remoteDb.partsUpdatedAt || 0;
+  const actualLocalPartsUpdatedAt = localPartsUpdatedAt || 0;
 
   // Union of deleted IDs (Tombstones)
   const combinedDeletedIds = Array.from(new Set([...localDeletedIds, ...remoteDeletedIds]));
@@ -289,16 +294,16 @@ export function mergeDatabases(
   });
 
   // Resolve parts conflict: if remote edit timestamp is not clear, we edit partsText
-  // Let's assume the one with changes or larger length, or simply remote wins if it has content
-  // Since remoteDb has its own updatedAt or we can just trace parts text lengths or edits.
-  // We can let the latest overall database update decide or merge/keep remote if it changed.
-  // Let's use simple logic: if partsText differ, we can prefer whichever was modified more recently, 
-  // or default to local if remote is empty.
-  const mergedPartsText = remotePartsText || localPartsText;
+  const mergedPartsText = actualLocalPartsUpdatedAt >= remotePartsUpdatedAt
+    ? localPartsText
+    : (remotePartsText || localPartsText);
+
+  const mergedPartsUpdatedAt = Math.max(actualLocalPartsUpdatedAt, remotePartsUpdatedAt);
 
   return {
     mergedItems,
     mergedPartsText,
-    mergedDeletedIds: combinedDeletedIds
+    mergedDeletedIds: combinedDeletedIds,
+    mergedPartsUpdatedAt
   };
 }

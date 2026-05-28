@@ -22,6 +22,7 @@ export default function RepairDetail({
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<RepairItem>>({ ...item });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -45,6 +46,7 @@ export default function RepairDetail({
       model: formData.model.trim(),
       reason: formData.reason || '',
       contact: formData.contact || '',
+      contact2: formData.contact2 || '',
       name: formData.name || '',
       comment: formData.comment || ''
     };
@@ -129,6 +131,11 @@ export default function RepairDetail({
                 <span className="text-sm font-mono text-neutral-200 mt-1 block select-all">
                   {item.contact || '—'}
                 </span>
+                {item.contact2 && (
+                  <span className="text-xs font-mono text-neutral-400 block select-all mt-0.5" title="Второй номер">
+                    {item.contact2}
+                  </span>
+                )}
               </div>
               <div>
                 <span className="block text-[10px] uppercase font-mono tracking-wider text-neutral-500">
@@ -173,9 +180,9 @@ export default function RepairDetail({
 
             {/* Middle Contact Action Row */}
             {item.contact && (
-              <div className="bg-[#1e1e1e] border border-[#2c2c2c] rounded-xl p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="bg-[#1e1e1e] border border-[#2c2c2c] rounded-xl p-5 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <label className="text-xs text-neutral-500 font-mono block mb-1">НОМЕР СВЯЗИ</label>
+                  <label className="text-xs text-neutral-500 font-mono block mb-1">ОСНОВНОЙ НОМЕР СВЯЗИ</label>
                   <p
                     onClick={() => handleCopy(item.contact)}
                     className="text-2xl font-bold text-white tracking-wide cursor-pointer hover:text-blue-400 transition-colors select-all"
@@ -210,6 +217,39 @@ export default function RepairDetail({
               </div>
             )}
 
+            {/* Middle Contact 2 Action Row */}
+            {item.contact2 && (
+              <div className="bg-[#1e1e1e] border border-[#2c2c2c] rounded-xl p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <label className="text-xs text-neutral-500 font-mono block mb-1">ВТОРОЙ НОМЕР СВЯЗИ</label>
+                  <p
+                    onClick={() => handleCopy(item.contact2!)}
+                    className="text-2xl font-bold text-white tracking-wide cursor-pointer hover:text-blue-400 transition-colors select-all"
+                    title="Нажмите, чтобы скопировать"
+                  >
+                    {item.contact2}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <a
+                    href={`tel:${item.contact2}`}
+                    className="flex items-center gap-1 bg-[#1c1c1c] hover:bg-[#2c2c2c] border border-[#2e2e2e] text-neutral-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Phone size={14} className="text-blue-400" />
+                    <span>Call</span>
+                  </a>
+                  <a
+                    href={`sms:${item.contact2}`}
+                    className="flex items-center gap-1 bg-[#1c1c1c] hover:bg-[#2c2c2c] border border-[#2e2e2e] text-neutral-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <MessageSquare size={14} className="text-[#a3e635]" />
+                    <span>SMS</span>
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Optional Comment block */}
             {item.comment && (
               <div className="mb-8">
@@ -225,17 +265,28 @@ export default function RepairDetail({
             {/* Status Change Buttons Card Footer */}
             <div className="pt-6 border-t border-[#242424] flex flex-col gap-3">
               {item.status === 'active' ? (
-                <button
-                  onClick={() => {
-                    onArchiveItem(item.id);
-                    showToast('Запись перемещена в архив');
-                    onBack();
-                  }}
-                  className="w-full py-3 px-4 bg-[#1f5975] hover:bg-[#256c8e] text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  <Archive size={16} />
-                  <span>В архив</span>
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      onArchiveItem(item.id);
+                      showToast('Запись перемещена в архив');
+                      onBack();
+                    }}
+                    className="flex-1 py-3 px-4 bg-[#1f5975] hover:bg-[#256c8e] text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    <Archive size={16} />
+                    <span>В архив</span>
+                  </button>
+                  {onDeleteItem && (
+                    <button
+                      onClick={() => setShowConfirmDelete(true)}
+                      className="py-3 px-5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900 border-dashed text-rose-300 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={16} />
+                      <span>Удалить навсегда</span>
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="flex gap-3">
                   {onRestoreItem && (
@@ -253,12 +304,7 @@ export default function RepairDetail({
                   )}
                   {onDeleteItem && (
                     <button
-                      onClick={() => {
-                        if (window.confirm('Вы действительно хотите удалить эту запись навсегда?')) {
-                          onDeleteItem(item.id);
-                          onBack();
-                        }
-                      }}
+                      onClick={() => setShowConfirmDelete(true)}
                       className="py-3 px-5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900 border-dashed text-rose-300 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
                       <Trash2 size={16} />
@@ -426,6 +472,50 @@ export default function RepairDetail({
           </form>
         )}
       </div>
+
+      {/* Custom elegant confirmation dialog */}
+      {showConfirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="w-full max-w-sm bg-[#161616] border border-[#2b2b2b] rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-rose-500 mb-4">
+              <div className="p-2 bg-rose-500/10 rounded-xl">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-white">Удалить запись?</h3>
+            </div>
+            
+            <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
+              Вы уверены, что хотите безвозвратно удалить запись <strong className="text-neutral-200">"{item.model}"</strong>? Это действие нельзя отменить.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowConfirmDelete(false)}
+                className="px-4 py-2 bg-[#242424] hover:bg-[#2d2d2d] border border-[#2e2e2e] text-neutral-300 hover:text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  if (onDeleteItem) {
+                    onDeleteItem(item.id);
+                    onBack();
+                  }
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-semibold shadow-md active:translate-y-0.5 transition-all cursor-pointer"
+              >
+                Да, удалить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

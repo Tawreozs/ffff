@@ -189,23 +189,27 @@ export default function App() {
           const hasNewPartsText = remotePartsText !== currentParts && remotePartsText !== '';
 
           // 2. Perform safe database merge
-          const { mergedItems, mergedPartsText, mergedDeletedIds } = mergeDatabases(
+          const localPartsUpdatedAt = Number(localStorage.getItem('parts_updated_at') || '0');
+          const { mergedItems, mergedPartsText, mergedDeletedIds, mergedPartsUpdatedAt } = mergeDatabases(
             currentItems,
             currentParts,
             currentDeleted,
-            remoteDb
+            remoteDb,
+            localPartsUpdatedAt
           );
 
           // 3. Update states
           setItems(mergedItems);
           setPartsText(mergedPartsText);
           setDeletedIds(mergedDeletedIds);
+          localStorage.setItem('parts_updated_at', mergedPartsUpdatedAt.toString());
 
           // 4. Save consolidated back to GitHub
           const uploadResult = await uploadGithubDoc(token, repo, pathValue, {
             items: mergedItems,
             partsText: mergedPartsText,
             deletedIds: mergedDeletedIds,
+            partsUpdatedAt: mergedPartsUpdatedAt,
             updatedAt: Date.now()
           });
 
@@ -227,10 +231,12 @@ export default function App() {
           }
         } else {
           // Initialize empty
+          const localPartsUpdatedAt = Number(localStorage.getItem('parts_updated_at') || '0');
           const uploadResult = await uploadGithubDoc(token, repo, pathValue, {
             items: currentItems,
             partsText: currentParts,
             deletedIds: currentDeleted,
+            partsUpdatedAt: localPartsUpdatedAt,
             updatedAt: Date.now()
           });
 
@@ -300,23 +306,27 @@ export default function App() {
           const hasNewPartsText = remotePartsText !== currentParts && remotePartsText !== '';
 
           // 2. Perform safe, conflict-free database merge
-          const { mergedItems, mergedPartsText, mergedDeletedIds } = mergeDatabases(
+          const localPartsUpdatedAt = Number(localStorage.getItem('parts_updated_at') || '0');
+          const { mergedItems, mergedPartsText, mergedDeletedIds, mergedPartsUpdatedAt } = mergeDatabases(
             currentItems,
             currentParts,
             currentDeleted,
-            remoteDb
+            remoteDb,
+            localPartsUpdatedAt
           );
 
           // 3. Update React local states
           setItems(mergedItems);
           setPartsText(mergedPartsText);
           setDeletedIds(mergedDeletedIds);
+          localStorage.setItem('parts_updated_at', mergedPartsUpdatedAt.toString());
 
           // 4. Save newly merged consolidated DB back to cloud
           const uploadResult = await uploadYandexDoc(token, {
             items: mergedItems,
             partsText: mergedPartsText,
             deletedIds: mergedDeletedIds,
+            partsUpdatedAt: mergedPartsUpdatedAt,
             updatedAt: Date.now()
           });
 
@@ -338,10 +348,12 @@ export default function App() {
           }
         } else {
           // First sync on empty disk / file doesn't exist yet: initialize with current state
+          const localPartsUpdatedAt = Number(localStorage.getItem('parts_updated_at') || '0');
           const uploadResult = await uploadYandexDoc(token, {
             items: currentItems,
             partsText: currentParts,
             deletedIds: currentDeleted,
+            partsUpdatedAt: localPartsUpdatedAt,
             updatedAt: Date.now()
           });
 
@@ -577,6 +589,7 @@ export default function App() {
   // Sync parts update
   const handleUpdatePartsText = async (newText: string) => {
     setPartsText(newText);
+    localStorage.setItem('parts_updated_at', Date.now().toString());
     
     if (isCloudActive()) {
       triggerCloudSync(items, newText, deletedIds);

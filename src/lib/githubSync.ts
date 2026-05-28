@@ -120,7 +120,7 @@ async function downloadDirectFromClient(token: string, repo: string, path: strin
   addStep('Начало прямого скачивания с GitHub через браузер', 'info');
   try {
     addStep(`Запрос файла "${cleanPath}" в репозитории "${cleanRepo}"...`, 'info');
-    const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
+    const url = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}?t=${Date.now()}`;
     console.log('GitHub URL:', url);
     console.log('Token length:', cleanToken.length);
 
@@ -192,7 +192,7 @@ async function uploadDirectFromClient(
     let sha: string | null = null;
 
     try {
-      const shaUrl = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}`;
+      const shaUrl = `https://api.github.com/repos/${cleanRepo}/contents/${cleanPath}?t=${Date.now()}`;
       console.log('GitHub URL:', shaUrl);
       console.log('Repo:', cleanRepo);
       console.log('Path:', cleanPath);

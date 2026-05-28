@@ -26,14 +26,18 @@ export default function Analytics({ items }: AnalyticsProps) {
   const activeRepairsCount = items.filter(i => i.status === 'active').length;
   const archivedRepairsCount = items.filter(i => i.status === 'archived').length;
 
-  // Global financial calculations
-  const totalRevenue = useMemo(() => {
-    return items.reduce((acc, item) => acc + (item.price || 0), 0);
+  const archivedItemsOnly = useMemo(() => {
+    return items.filter(i => i.status === 'archived');
   }, [items]);
 
+  // Global financial calculations
+  const totalRevenue = useMemo(() => {
+    return archivedItemsOnly.reduce((acc, item) => acc + (item.price || 0), 0);
+  }, [archivedItemsOnly]);
+
   const totalPartsCost = useMemo(() => {
-    return items.reduce((acc, item) => acc + (item.partsCost || 0), 0);
-  }, [items]);
+    return archivedItemsOnly.reduce((acc, item) => acc + (item.partsCost || 0), 0);
+  }, [archivedItemsOnly]);
 
   const totalProfit = useMemo(() => {
     return totalRevenue - totalPartsCost;
@@ -45,10 +49,10 @@ export default function Analytics({ items }: AnalyticsProps) {
   }, [totalRevenue, totalProfit]);
 
   const averageTicket = useMemo(() => {
-    const monetizationRepairs = items.filter(i => (i.price || 0) > 0);
+    const monetizationRepairs = archivedItemsOnly.filter(i => (i.price || 0) > 0);
     if (monetizationRepairs.length === 0) return 0;
     return totalRevenue / monetizationRepairs.length;
-  }, [items, totalRevenue]);
+  }, [archivedItemsOnly, totalRevenue]);
 
   // -- Calculator State --
   const [calcPrice, setCalcPrice] = useState<number>(3500);
@@ -118,7 +122,7 @@ export default function Analytics({ items }: AnalyticsProps) {
   const brandStats = useMemo(() => {
     const brands: Record<string, { count: number; revenue: number; cost: number; profit: number }> = {};
     
-    items.forEach(item => {
+    archivedItemsOnly.forEach(item => {
       // Find Brand Name (First word in uppercase)
       const modelClean = item.model.trim();
       let brand = modelClean.split(' ')[0] || 'Другое';
@@ -151,13 +155,13 @@ export default function Analytics({ items }: AnalyticsProps) {
         margin: data.revenue > 0 ? (data.profit / data.revenue) * 100 : 0
       }))
       .sort((a, b) => b.profit - a.profit);
-  }, [items]);
+  }, [archivedItemsOnly]);
 
   // Find highest profit item
   const topProfitItem = useMemo(() => {
     let bestItem: RepairItem | null = null;
     let maxProfit = -999999;
-    items.forEach(i => {
+    archivedItemsOnly.forEach(i => {
       const p = (i.price || 0) - (i.partsCost || 0);
       if (p > maxProfit) {
         maxProfit = p;
@@ -165,7 +169,7 @@ export default function Analytics({ items }: AnalyticsProps) {
       }
     });
     return bestItem ? { ...bestItem, profit: maxProfit } : null;
-  }, [items]);
+  }, [archivedItemsOnly]);
 
   return (
     <div className="flex-1 flex flex-col bg-[#121212] text-[#f5f5f5] p-4 sm:p-6 min-h-screen">

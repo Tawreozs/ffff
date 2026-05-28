@@ -23,6 +23,9 @@ export default function RepairList({
 }: RepairListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const itemToDelete = items.find(item => item.id === deleteConfirmId);
 
   const filteredItems = items.filter((item) => {
     const query = searchQuery.toLowerCase();
@@ -144,9 +147,12 @@ export default function RepairList({
 
                     {/* Dropdown Menu */}
                     {activeDropdownId === item.id && (
-                      <div className={`absolute right-0 z-20 w-48 bg-[#1e1e1e] border border-[#2d2d2d] rounded-lg shadow-xl py-1 text-sm font-sans animate-in fade-in duration-100 ${
-                        isNearBottom ? 'bottom-8 mb-1 origin-bottom slide-in-from-bottom-2' : 'top-8 mt-1 origin-top slide-in-from-top-2'
-                      }`}>
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className={`absolute right-0 z-20 w-48 bg-[#1e1e1e] border border-[#2d2d2d] rounded-lg shadow-xl py-1 text-sm font-sans animate-in fade-in duration-100 ${
+                          isNearBottom ? 'bottom-8 mb-1 origin-bottom slide-in-from-bottom-2' : 'top-8 mt-1 origin-top slide-in-from-top-2'
+                        }`}
+                      >
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -191,9 +197,7 @@ export default function RepairList({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (window.confirm(`Удалить запись "${item.model}" навсегда?`)) {
-                                onDeleteItem(item.id);
-                              }
+                              setDeleteConfirmId(item.id);
                               setActiveDropdownId(null);
                             }}
                             className="w-full text-left px-4 py-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 flex items-center gap-2 border-t border-[#2d2d2d]"
@@ -211,6 +215,52 @@ export default function RepairList({
           </div>
         )}
       </div>
+
+      {/* Custom elegant confirmation dialog */}
+      {deleteConfirmId && itemToDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setDeleteConfirmId(null)}
+        >
+          <div 
+            className="w-full max-w-sm bg-[#161616] border border-[#2b2b2b] rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-rose-500 mb-4">
+              <div className="p-2 bg-rose-500/10 rounded-xl">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-white">Удалить запись?</h3>
+            </div>
+            
+            <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
+              Вы уверены, что хотите безвозвратно удалить запись <strong className="text-neutral-200">"{itemToDelete.model}"</strong>? Это действие нельзя отменить.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 bg-[#242424] hover:bg-[#2d2d2d] border border-[#2e2e2e] text-neutral-300 hover:text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeleteItem) {
+                    onDeleteItem(deleteConfirmId);
+                  }
+                  setDeleteConfirmId(null);
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-semibold shadow-md active:translate-y-0.5 transition-all cursor-pointer"
+              >
+                Да, удалить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
