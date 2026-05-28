@@ -127,10 +127,7 @@ async function downloadDirectFromClient(token: string, repo: string, path: strin
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `token ${cleanToken}`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Authorization': `token ${cleanToken}`
       }
     });
 
@@ -204,10 +201,7 @@ async function uploadDirectFromClient(
       const shaRes = await fetch(shaUrl, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `token ${cleanToken}`,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Authorization': `token ${cleanToken}`
         }
       });
       if (shaRes.ok) {

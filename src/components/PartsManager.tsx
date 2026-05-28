@@ -47,6 +47,20 @@ export default function PartsManager({ partsText, onUpdateParts }: PartsManagerP
     setHasUnsavedChanges(false);
   };
 
+  // Debounced auto-save: automatically sync parts text 1.5 seconds after user stops typing
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const timer = setTimeout(() => {
+      if (localText !== partsText) {
+        onUpdateParts(localText);
+      }
+      setHasUnsavedChanges(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [localText, hasUnsavedChanges, partsText, onUpdateParts]);
+
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
