@@ -1,18 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { 
   TrendingUp, 
-  DollarSign, 
   Percent, 
-  Smartphone, 
-  RefreshCw, 
-  Calculator, 
-  AlertTriangle, 
-  CheckCircle, 
-  ArrowRight,
-  TrendingDown,
-  Wrench,
-  HelpCircle,
-  PiggyBank
+  TrendingDown, 
+  Wrench, 
+  PiggyBank,
+  Calendar,
+  Layers,
+  Smartphone,
+  ChevronDown
 } from 'lucide-react';
 import { RepairItem } from '../types';
 
@@ -20,17 +16,67 @@ interface AnalyticsProps {
   items: RepairItem[];
 }
 
-export default function Analytics({ items }: AnalyticsProps) {
-  // Let's filter active and archived to understand status
-  const totalRepairsCount = items.length;
-  const activeRepairsCount = items.filter(i => i.status === 'active').length;
-  const archivedRepairsCount = items.filter(i => i.status === 'archived').length;
+// Utility to parse month and year from a dates representation e.g. "28.05.2026, 12:30:15"
+const parseMonthYear = (dateStr: string | undefined): { monthNo: number; year: number; label: string } | null => {
+  if (!dateStr) return null;
+  const match = dateStr.match(/(\d{2})[./](\d{2})[./](\d{4})/);
+  if (!match) return null;
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+  if (isNaN(month) || isNaN(year) || month < 1 || month > 12) return null;
 
-  const archivedItemsOnly = useMemo(() => {
-    return items.filter(i => i.status === 'archived');
+  const monthNames = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
+  const label = `${monthNames[month - 1]} ${year}`;
+  return { monthNo: month, year, label };
+};
+
+export default function Analytics({ items }: AnalyticsProps) {
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+
+  // Dynamically group completed items to extract all unique months of operation
+  const availableMonths = useMemo(() => {
+    const monthsMap = new Map<string, { label: string; year: number; monthNo: number }>();
+    
+    items.forEach(item => {
+      if (item.status === 'archived') {
+        const dateToParse = item.archivedDate || item.date;
+        const parsed = parseMonthYear(dateToParse);
+        if (parsed) {
+          const key = `${parsed.year}-${String(parsed.monthNo).padStart(2, '0')}`;
+          monthsMap.set(key, { label: parsed.label, year: parsed.year, monthNo: parsed.monthNo });
+        }
+      }
+    });
+
+    // Sort months descending (newest months first)
+    return Array.from(monthsMap.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([key, data]) => ({ key, ...data }));
   }, [items]);
 
-  // Global financial calculations
+  // Filter archived items by selected period (month & year)
+  const archivedItemsOnly = useMemo(() => {
+    const list = items.filter(i => i.status === 'archived');
+    if (selectedMonth === 'all') return list;
+    
+    return list.filter(item => {
+      const dateToParse = item.archivedDate || item.date;
+      const parsed = parseMonthYear(dateToParse);
+      if (!parsed) return false;
+      const key = `${parsed.year}-${String(parsed.monthNo).padStart(2, '0')}`;
+      return key === selectedMonth;
+    });
+  }, [items, selectedMonth]);
+
+  // General statistics counters
+  const totalRepairsCount = items.length;
+  const activeRepairsCount = items.filter(i => i.status === 'active').length;
+  const currentPeriodArchivedCount = archivedItemsOnly.length;
+
+  // Global financial calculations for chosen period
   const totalRevenue = useMemo(() => {
     return archivedItemsOnly.reduce((acc, item) => acc + (item.price || 0), 0);
   }, [archivedItemsOnly]);
@@ -48,82 +94,11 @@ export default function Analytics({ items }: AnalyticsProps) {
     return (totalProfit / totalRevenue) * 100;
   }, [totalRevenue, totalProfit]);
 
-  const averageTicket = useMemo(() => {
-    const monetizationRepairs = archivedItemsOnly.filter(i => (i.price || 0) > 0);
-    if (monetizationRepairs.length === 0) return 0;
-    return totalRevenue / monetizationRepairs.length;
-  }, [archivedItemsOnly, totalRevenue]);
-
-  // -- Calculator State --
-  const [calcPrice, setCalcPrice] = useState<number>(3500);
-  const [calcPartsCost, setCalcPartsCost] = useState<number>(1200);
-  const [calcOtherExpenses, setCalcOtherExpenses] = useState<number>(150);
-  const [selectedPreset, setSelectedPreset] = useState<string>('custom');
-
-  // Realistic scenario presets
-  const presets = [
-    { id: 'screen', name: 'Замена дисплея', price: 5000, parts: 2000, other: 150 },
-    { id: 'battery', name: 'Замена АКБ', price: 1800, parts: 500, other: 50 },
-    { id: 'connector', name: 'Разъем питания', price: 1200, parts: 100, other: 30 },
-    { id: 'software', name: 'FRP / Прошивка', price: 1500, parts: 0, other: 0 },
-    { id: 'water', name: 'Чистка после воды', price: 2500, parts: 0, other: 200 }
-  ];
-
-  const handleApplyPreset = (presetId: string) => {
-    const preset = presets.find(p => p.id === presetId);
-    if (preset) {
-      setCalcPrice(preset.price);
-      setCalcPartsCost(preset.parts);
-      setCalcOtherExpenses(preset.other);
-      setSelectedPreset(presetId);
-    }
-  };
-
-  // Calculator helper outputs
-  const calcNetProfit = calcPrice - calcPartsCost - calcOtherExpenses;
-  const calcMargin = calcPrice > 0 ? (calcNetProfit / calcPrice) * 100 : 0;
-  const calcROI = (calcPartsCost + calcOtherExpenses) > 0 
-    ? (calcNetProfit / (calcPartsCost + calcOtherExpenses)) * 100 
-    : 100;
-
-  // Recommendation builder based on Margin
-  const getRecommendation = (margin: number) => {
-    if (margin <= 0) {
-      return {
-        style: 'border-red-500/30 bg-red-950/20 text-red-400',
-        icon: <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />,
-        text: 'Убыточный заказ! Стоимость расходников и запчастей превышает цену ремонта. Рекомендуем пересчитать условия с клиентом.'
-      };
-    }
-    if (margin < 30) {
-      return {
-        style: 'border-yellow-500/30 bg-yellow-950/20 text-yellow-400',
-        icon: <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />,
-        text: 'Низкая маржинальность (меньше 30%). Это рискованно в случае брака детали. Попробуйте поднять стоимость работы или найти более дешевого поставщика.'
-      };
-    }
-    if (margin < 60) {
-      return {
-        style: 'border-blue-500/30 bg-blue-950/20 text-blue-400',
-        icon: <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />,
-        text: 'Стандартная рыночная маржинальность (30-60%). Хороший баланс цены для клиента и заработка мастера.'
-      };
-    }
-    return {
-      style: 'border-emerald-500/30 bg-emerald-950/20 text-emerald-400',
-      icon: <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />,
-      text: 'Великолепная рентабельность! (более 60%). Высокодоходный ремонт. Такие заказы приносят основную долю чистой прибыли мастерской.'
-    };
-  };
-
-  const recommendation = getRecommendation(calcMargin);
-
   // Group stats by Device Brand/Model keywords
   const brandStats = useMemo(() => {
     const brands: Record<string, { count: number; revenue: number; cost: number; profit: number }> = {};
     
     archivedItemsOnly.forEach(item => {
-      // Find Brand Name (First word in uppercase)
       const modelClean = item.model.trim();
       let brand = modelClean.split(' ')[0] || 'Другое';
       // Normalize common names
@@ -173,24 +148,55 @@ export default function Analytics({ items }: AnalyticsProps) {
 
   return (
     <div className="flex-1 flex flex-col bg-[#121212] text-[#f5f5f5] p-4 sm:p-6 min-h-screen">
-      {/* Header bar */}
-      <div className="mb-6 max-w-5xl w-full">
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Финансовая аналитика</h1>
-        <p className="text-xs text-neutral-400 mt-1">
-          Контроль за оборотом, затратами, рентабельностью ремонтной мастерской и моделирование прибыли
-        </p>
+      
+      {/* Header bar with custom Month Filter */}
+      <div className="mb-6 max-w-5xl w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#222222] pb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <TrendingUp size={24} className="text-blue-400" />
+            <span>Финансовая аналитика</span>
+          </h1>
+          <p className="text-xs text-neutral-400 mt-1">
+            Контроль за оборотом, затратами и рентабельностью ремонтной мастерской с фильтром по месяцам
+          </p>
+        </div>
+
+        {/* Dynamic Month Selector Filter */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="month-select" className="text-xs font-semibold text-neutral-400 flex items-center gap-1">
+            <Calendar size={14} className="text-blue-400" />
+            <span>Период:</span>
+          </label>
+          <div className="relative">
+            <select
+              id="month-select"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-[#1c1c1c] border border-[#2d2d2d] text-neutral-100 rounded-lg py-2 pl-3 pr-8 text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 transition-all cursor-pointer appearance-none min-w-[150px]"
+            >
+              <option value="all">За всё время</option>
+              {availableMonths.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          </div>
+        </div>
       </div>
 
       {/* Grid of Key stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-5xl w-full font-sans">
-        {/* Total Revenue */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 max-w-5xl w-full font-sans">
+        
+        {/* Total Revenue card */}
         <div className="bg-[#161616] border border-[#222222] rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[10px] text-neutral-500 font-mono tracking-wider uppercase">ОБЩАЯ ВЫРУЧКА</span>
-            <p className="text-xl sm:text-2xl font-bold text-[#f5f5f5] tracking-tight mt-1">
+            <p className="text-lg sm:text-2xl font-bold text-[#f5f5f5] tracking-tight mt-1">
               {totalRevenue.toLocaleString('ru-RU')} ₽
             </p>
-            <span className="text-[11px] text-neutral-400 flex items-center gap-1 mt-1 font-mono">
+            <span className="text-[10px] text-neutral-400 flex items-center gap-1 mt-1 font-mono">
               Общий оборот
             </span>
           </div>
@@ -199,14 +205,14 @@ export default function Analytics({ items }: AnalyticsProps) {
           </div>
         </div>
 
-        {/* Total Parts Cost */}
+        {/* Total Parts Cost card */}
         <div className="bg-[#161616] border border-[#222222] rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[10px] text-neutral-500 font-mono tracking-wider uppercase">ЗАТРАТЫ (ДЕТАЛИ)</span>
-            <p className="text-xl sm:text-2xl font-bold text-neutral-300 tracking-tight mt-1">
+            <p className="text-lg sm:text-2xl font-bold text-neutral-300 tracking-tight mt-1">
               {totalPartsCost.toLocaleString('ru-RU')} ₽
             </p>
-            <span className="text-[11px] text-neutral-500 flex items-center gap-1 mt-1 font-mono">
+            <span className="text-[10px] text-neutral-500 flex items-center gap-1 mt-1 font-mono">
               Себестоимость
             </span>
           </div>
@@ -215,14 +221,14 @@ export default function Analytics({ items }: AnalyticsProps) {
           </div>
         </div>
 
-        {/* Net Profit */}
+        {/* Net Profit card */}
         <div className="bg-[#161616] border border-blue-900/30 rounded-xl p-4 flex items-center justify-between shadow-md">
           <div>
             <span className="text-[10px] text-blue-400 font-mono tracking-wider uppercase">ЧИСТАЯ ПРИБЫЛЬ</span>
-            <p className="text-xl sm:text-2xl font-bold text-emerald-400 tracking-tight mt-1">
+            <p className="text-lg sm:text-2xl font-bold text-emerald-400 tracking-tight mt-1">
               {totalProfit.toLocaleString('ru-RU')} ₽
             </p>
-            <span className="text-[11px] text-emerald-500/80 flex items-center gap-1 mt-1 font-mono">
+            <span className="text-[10px] text-emerald-500/80 flex items-center gap-1 mt-1 font-mono">
               Чистыми на руки
             </span>
           </div>
@@ -231,14 +237,14 @@ export default function Analytics({ items }: AnalyticsProps) {
           </div>
         </div>
 
-        {/* Profit Margin */}
+        {/* Profit Margin card */}
         <div className="bg-[#161616] border border-[#222222] rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <span className="text-[10px] text-neutral-500 font-mono tracking-wider uppercase">РЕНТАБЕЛЬНОСТЬ</span>
-            <p className="text-xl sm:text-2xl font-bold text-white mt-1">
+            <p className="text-lg sm:text-2xl font-bold text-white mt-1">
               {avgProfitMargin.toFixed(1)}%
             </p>
-            <span className="text-[11px] text-neutral-400 flex items-center gap-1 mt-1 font-mono">
+            <span className="text-[10px] text-neutral-400 flex items-center gap-1 mt-1 font-mono">
               Средняя маржа
             </span>
           </div>
@@ -248,24 +254,24 @@ export default function Analytics({ items }: AnalyticsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-5xl w-full mb-8">
-        {/* LEFT COLUMN: BRAND BREAKDOWN ANALYSIS (7 COLS) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Custom SVG Bar Chart */}
-          <div className="bg-[#161616] border border-[#222222] rounded-xl p-5 shadow-md">
+      {/* Main Grid: charts and statistics */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-5xl w-full mb-6">
+        
+        {/* LEFT COLUMN: BRAND BREAKDOWN ANALYSIS (5 COLS) */}
+        <div className="lg:col-span-5 bg-[#161616] border border-[#222222] rounded-xl p-5 shadow-md flex flex-col justify-between">
+          <div>
             <h3 className="text-sm font-semibold text-white tracking-tight mb-4 flex items-center gap-1.5 font-sans">
-              <TrendingUp size={16} className="text-blue-400" />
+              <Layers size={16} className="text-blue-400" />
               <span>Распределение прибыли по брендам</span>
             </h3>
 
             {brandStats.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-neutral-500 text-xs">
-                Нет данных для построения диаграммы
+              <div className="h-48 flex items-center justify-center text-neutral-500 text-xs text-center p-4">
+                Нет данных для этого периода.<br/>Переместите отремонтированные аппараты в архив.
               </div>
             ) : (
               <div className="space-y-4">
                 {brandStats.slice(0, 5).map((brand, index) => {
-                  // Calculate percentage width based on highest profit
                   const maxProfit = Math.max(...brandStats.map(b => b.profit), 1);
                   const widthPercent = (brand.profit / maxProfit) * 100;
                   
@@ -285,8 +291,7 @@ export default function Analytics({ items }: AnalyticsProps) {
                         </span>
                       </div>
                       
-                      {/* Bar container */}
-                      <div className="h-2 w-full bg-[#242424] rounded-full overflow-hidden">
+                      <div className="h-2.1 w-full bg-[#242424] rounded-full overflow-hidden">
                         <div
                           style={{ width: `${Math.max(widthPercent, 4)}%` }}
                           className={`h-full rounded-full transition-all duration-500 bg-gradient-to-r ${
@@ -304,217 +309,80 @@ export default function Analytics({ items }: AnalyticsProps) {
             )}
           </div>
 
-          {/* Brands table / Statistics details */}
-          <div className="bg-[#161616] border border-[#222222] rounded-xl overflow-hidden shadow-sm">
+          <div className="mt-4 pt-4 border-t border-[#242424] text-[11px] text-neutral-400 flex justify-between">
+            <span>Аппаратов готово в этом периоде:</span>
+            <span className="font-bold text-white">{currentPeriodArchivedCount} шт.</span>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: BRANDS TABLE RENTABILITY (7 COLS) */}
+        <div className="lg:col-span-7 bg-[#161616] border border-[#222222] rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+          <div>
             <div className="p-4 bg-[#1a1a1a] border-b border-[#242424] flex justify-between items-center">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-mono">
-                Рейтинг рентабельности по производителям
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 font-mono flex items-center gap-1.5">
+                <Smartphone size={14} className="text-neutral-400" />
+                <span>Производители и доходность за период</span>
               </h3>
               <span className="text-[10px] text-neutral-500 font-mono uppercase">
-                Всего брендов: {brandStats.length}
+                Брендов: {brandStats.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-[#262626] text-neutral-500 font-semibold uppercase font-mono">
-                    <th className="p-3">Производитель</th>
-                    <th className="p-3 text-center">Кол-во</th>
-                    <th className="p-3 text-right">Выручка</th>
-                    <th className="p-3 text-right">Запчасти</th>
-                    <th className="p-3 text-right text-emerald-400">Чистая прибыль</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#242424] text-neutral-300 font-sans">
-                  {brandStats.map((brand) => (
-                    <tr key={brand.name} className="hover:bg-[#1e1e1e]/60 transition-colors">
-                      <td className="p-3 font-medium text-white">{brand.name}</td>
-                      <td className="p-3 text-center font-mono">{brand.count}</td>
-                      <td className="p-3 text-right font-mono">{brand.revenue.toLocaleString('ru-RU')} ₽</td>
-                      <td className="p-3 text-right font-mono text-neutral-400">{brand.cost.toLocaleString('ru-RU')} ₽</td>
-                      <td className="p-3 text-right font-mono text-emerald-400 font-semibold">
-                        +{brand.profit.toLocaleString('ru-RU')} ₽
-                      </td>
+            {brandStats.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-neutral-500 text-xs">
+                Нет записей в архиве за выбранный период
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-[#262626] text-neutral-500 font-semibold uppercase font-mono">
+                      <th className="p-3">Производитель</th>
+                      <th className="p-3 text-center">Кол-во</th>
+                      <th className="p-3 text-right">Выручка</th>
+                      <th className="p-3 text-right text-emerald-400">Чистая прибыль</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Top Record performance block */}
-          {topProfitItem && (
-            <div className="bg-gradient-to-r from-blue-950/20 via-indigo-950/10 to-transparent border border-blue-900/30 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] text-blue-400 font-mono tracking-wider uppercase block">САМЫЙ ПРИБЫЛЬНЫЙ РЕМОНТ</span>
-                <p className="text-sm font-semibold text-white mt-1 leading-snug">
-                  {topProfitItem.model} — {topProfitItem.reason}
-                </p>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  Выручка: {topProfitItem.price?.toLocaleString('ru-RU')} ₽ · 
-                  Запчасть: {topProfitItem.partsCost?.toLocaleString('ru-RU')} ₽
-                </p>
+                  </thead>
+                  <tbody className="divide-y divide-[#242424] text-neutral-300 font-sans">
+                    {brandStats.map((brand) => (
+                      <tr key={brand.name} className="hover:bg-[#1e1e1e]/60 transition-colors">
+                        <td className="p-3 font-medium text-white">{brand.name}</td>
+                        <td className="p-3 text-center font-mono">{brand.count}</td>
+                        <td className="p-3 text-right font-mono">{brand.revenue.toLocaleString('ru-RU')} ₽</td>
+                        <td className="p-3 text-right font-mono text-emerald-400 font-semibold">
+                          +{brand.profit.toLocaleString('ru-RU')} ₽
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="text-right font-mono">
-                <span className="text-xs text-neutral-500 uppercase block">ПРИБЫЛЬ</span>
-                <span className="text-emerald-400 font-bold text-lg">
-                  +{topProfitItem.profit.toLocaleString('ru-RU')} ₽
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT COLUMN: INTERACTIVE PROFIT CALCULATOR (5 COLS) */}
-        <div className="lg:col-span-5">
-          <div className="bg-[#161616] border border-blue-900/20 rounded-xl p-5 shadow-lg flex flex-col h-full">
-            <div className="flex items-center gap-2 pb-4 border-b border-[#242424] mb-4">
-              <Calculator className="w-5 h-5 text-blue-400" />
-              <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">Калькулятор прибыли</h3>
-                <p className="text-[11px] text-neutral-500">Симуляция стоимости и оценка прибыльности ремонта</p>
-              </div>
-            </div>
-
-            {/* Quick Presets row */}
-            <div className="mb-4">
-              <label className="text-[10px] text-neutral-500 uppercase font-mono tracking-wider block mb-2">ПОПУЛЯРНЫЕ ШАБЛОНЫ</label>
-              <div className="flex flex-wrap gap-1.5">
-                {presets.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleApplyPreset(preset.id)}
-                    className={`px-2 py-1 rounded text-xs transition-all ${
-                      selectedPreset === preset.id
-                        ? 'bg-blue-600 text-white border border-blue-500'
-                        : 'bg-[#222222] text-neutral-400 hover:text-white border border-transparent'
-                    }`}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Inputs Form */}
-            <div className="space-y-4 flex-1">
-              {/* Expected customer Price */}
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-neutral-400">Стоимость для клиента (Выручка)</span>
-                  <span className="text-blue-400 font-mono">{calcPrice.toLocaleString('ru-RU')} ₽</span>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-neutral-500">₽</span>
-                  <input
-                    type="number"
-                    value={calcPrice}
-                    onChange={(e) => {
-                      setCalcPrice(Math.max(0, parseInt(e.target.value) || 0));
-                      setSelectedPreset('custom');
-                    }}
-                    className="w-full bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg pl-8 pr-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="15000"
-                  step="100"
-                  value={calcPrice}
-                  onChange={(e) => {
-                    setCalcPrice(parseInt(e.target.value) || 0);
-                    setSelectedPreset('custom');
-                  }}
-                  className="w-full mt-2 accent-blue-500"
-                />
-              </div>
-
-              {/* Spare parts cost */}
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-neutral-400">Цена запчасти (Себестоимость)</span>
-                  <span className="text-amber-500 font-mono">{calcPartsCost.toLocaleString('ru-RU')} ₽</span>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-neutral-500">₽</span>
-                  <input
-                    type="number"
-                    value={calcPartsCost}
-                    onChange={(e) => {
-                      setCalcPartsCost(Math.max(0, parseInt(e.target.value) || 0));
-                      setSelectedPreset('custom');
-                    }}
-                    className="w-full bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg pl-8 pr-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="8000"
-                  step="100"
-                  value={calcPartsCost}
-                  onChange={(e) => {
-                    setCalcPartsCost(parseInt(e.target.value) || 0);
-                    setSelectedPreset('custom');
-                  }}
-                  className="w-full mt-2 accent-amber-500"
-                />
-              </div>
-
-              {/* Other Expenses */}
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-neutral-400">Варка, доставка, флюс и пр.</span>
-                  <span className="text-neutral-400 font-mono">{calcOtherExpenses.toLocaleString('ru-RU')} ₽</span>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-neutral-500">₽</span>
-                  <input
-                    type="number"
-                    value={calcOtherExpenses}
-                    onChange={(e) => {
-                      setCalcOtherExpenses(Math.max(0, parseInt(e.target.value) || 0));
-                      setSelectedPreset('custom');
-                    }}
-                    className="w-full bg-[#1e1e1e] border border-[#2e2e2e] rounded-lg pl-8 pr-3 py-2 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition-colors font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Calculations outputs block */}
-            <div className="bg-[#1a1a1a] border border-[#262626] rounded-xl p-4 mt-6 space-y-3 font-sans">
-              <div className="flex justify-between items-center text-xs pb-2 border-b border-[#242424]">
-                <span className="text-neutral-400">Окупаемость (ROI):</span>
-                <span className="font-semibold text-neutral-200">
-                  {calcROI === 100 && (calcPartsCost + calcOtherExpenses) === 0 ? 'Без расходов' : `${calcROI.toFixed(0)}%`}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs pb-2 border-b border-[#242424]">
-                <span className="text-neutral-400">Рентабельность (Маржа):</span>
-                <span className={`font-semibold ${calcMargin >= 50 ? 'text-[#a3e635]' : 'text-yellow-400'}`}>
-                  {calcMargin.toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between items-center pt-1">
-                <span className="text-sm font-medium text-white">Расчетная чистая прибыль:</span>
-                <span className={`text-xl font-bold font-mono ${calcNetProfit > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {calcNetProfit.toLocaleString('ru-RU')} ₽
-                </span>
-              </div>
-            </div>
-
-            {/* Recommendations based on analysis */}
-            <div className={`mt-4 border p-3 rounded-lg flex gap-3 text-[11px] leading-relaxed transition-all ${recommendation.style}`}>
-              {recommendation.icon}
-              <p>{recommendation.text}</p>
-            </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Top profitability banner (Full-width for selected period) */}
+      {topProfitItem && (
+        <div className="max-w-5xl w-full bg-gradient-to-r from-blue-950/20 via-indigo-950/10 to-transparent border border-blue-900/30 rounded-xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-[10px] text-blue-400 font-mono tracking-wider uppercase block">САМЫЙ ПРИБЫЛЬНЫЙ РЕМОНТ ПЕРИОДА</span>
+            <p className="text-sm font-semibold text-white mt-1 leading-snug">
+              {topProfitItem.model} — {topProfitItem.reason}
+            </p>
+            <p className="text-xs text-neutral-400 mt-1">
+              Выручка: {topProfitItem.price?.toLocaleString('ru-RU')} ₽ · 
+              Запчасть: {topProfitItem.partsCost?.toLocaleString('ru-RU')} ₽
+            </p>
+          </div>
+          <div className="text-left sm:text-right font-mono">
+            <span className="text-xs text-neutral-500 uppercase block">ЧИСТАЯ ПРИБЫЛЬ</span>
+            <span className="text-emerald-400 font-bold text-xl block sm:inline">
+              +{topProfitItem.profit.toLocaleString('ru-RU')} ₽
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Financial info helper note footer */}
       <div className="max-w-5xl w-full p-4 bg-[#161616]/40 rounded-xl border border-[#222222] text-xs text-neutral-500 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left font-serif lg:font-sans">
@@ -522,7 +390,7 @@ export default function Analytics({ items }: AnalyticsProps) {
           <Wrench size={12} />
           <span>Все данные сохраняются автоматически в ваше браузерное хранилище LocalStorage.</span>
         </p>
-        <span className="font-mono text-[10px]">VER: 1.2 · FIN_CALC_ACTIVE</span>
+        <span className="font-mono text-[10px]">VER: 1.3 · MONTHLY_FILTERS_ENABLED</span>
       </div>
     </div>
   );

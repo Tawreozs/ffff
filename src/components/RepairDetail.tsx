@@ -56,7 +56,7 @@ export default function RepairDetail({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#121212] text-[#f5f5f5] p-4 sm:p-6 min-h-screen">
+    <div className="flex-1 flex flex-col bg-[#121212] text-[#f5f5f5] p-4 sm:p-6 pb-28 sm:pb-8">
       {/* Toast Feedback */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#1e293b] border border-blue-500 text-white px-4 py-2 text-xs font-medium rounded-lg shadow-2xl flex items-center gap-2 animate-bounce">

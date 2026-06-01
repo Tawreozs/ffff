@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, MoreHorizontal, CheckCircle2, Archive, Smartphone, Trash2 } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, CheckCircle2, Archive, Smartphone, Trash2, MessageSquare } from 'lucide-react';
 import { RepairItem } from '../types';
 
 interface RepairListProps {
@@ -145,6 +145,12 @@ export default function RepairList({
                         </>
                       )}
                     </div>
+                    {item.comment && (
+                      <div className="mt-2 text-xs text-neutral-400 bg-[#1e1e1e] border border-[#2e2e2e]/60 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5 max-w-full">
+                        <MessageSquare size={13} className="text-neutral-500 mt-0.5 shrink-0" />
+                        <span className="italic text-neutral-300 break-words line-clamp-2 select-text">{item.comment}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right controls */}
