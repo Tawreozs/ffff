@@ -330,17 +330,26 @@ export default function RepairDetail({
           /* Inline Edit Form mode */
           <form onSubmit={handleSave} className="space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-[#242424]">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-1.5">
                 <Edit size={16} className="text-blue-400" />
-                <span>Редактирование записи</span>
+                <span>Редактирование</span>
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="text-neutral-500 hover:text-white p-1 rounded hover:bg-[#222222]"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-3 py-1.5 bg-[#222222] hover:bg-[#2e2e2e] text-neutral-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer select-none transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-[#1f5975] hover:from-blue-500 hover:to-blue-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm cursor-pointer select-none transition-all active:scale-95"
+                >
+                  <Save size={12} />
+                  <span>Сохранить</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

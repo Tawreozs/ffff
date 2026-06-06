@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, MoreHorizontal, CheckCircle2, Archive, Smartphone, Trash2, MessageSquare } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, CheckCircle2, Archive, Smartphone, Trash2, MessageSquare, Phone } from 'lucide-react';
 import { RepairItem } from '../types';
 
 interface RepairListProps {
@@ -114,39 +114,48 @@ export default function RepairList({
                   } ${isLast ? 'rounded-b-xl' : ''}`}
                 >
                   {/* Left content: model, description / reason, phone date */}
-                  <div className="flex-1 pr-12">
-                    <h3 className="text-[15px] font-semibold text-[#f5f5f5] tracking-tight group-hover:text-white transition-colors">
+                  <div className="flex-1 pr-12 min-w-0">
+                    <h3 className="text-[15px] font-semibold text-[#f5f5f5] tracking-tight group-hover:text-blue-400 transition-colors truncate">
                       {item.model}
                     </h3>
-                    <div className="text-xs text-[#9e9e9e] mt-1 flex flex-wrap items-center gap-1.5">
+                    <div className="text-xs text-[#9e9e9e] mt-1 flex flex-wrap items-center gap-1.5 select-text">
+                      {item.contact && (
+                        <>
+                          <span className="text-blue-400 font-mono font-medium">{item.contact}</span>
+                          <span className="text-neutral-600 font-bold">·</span>
+                        </>
+                      )}
+                      {item.name && (
+                        <>
+                          <span className="text-neutral-300 font-medium">{item.name}</span>
+                          <span className="text-neutral-600 font-bold">·</span>
+                        </>
+                      )}
                       {item.reason && (
                         <>
-                          <span className="line-clamp-1">{item.reason}</span>
+                          <span className="line-clamp-1 text-neutral-400">{item.reason}</span>
                           <span className="text-neutral-600 font-bold">·</span>
                         </>
                       )}
                       {tab === 'archive' ? (
                         <>
-                          <span className="text-neutral-400">Приём: {item.date}</span>
+                          <span className="text-neutral-500">Приём: {item.date}</span>
                           {item.archivedDate && (
                             <>
                               <span className="text-neutral-600 font-bold">·</span>
-                              <span className="text-amber-500 font-medium">Архив: {item.archivedDate}</span>
+                              <span className="text-amber-500/90 font-medium">Архив: {item.archivedDate}</span>
                             </>
                           )}
                         </>
                       ) : (
-                        <span>{item.date}</span>
-                      )}
-                      {item.name && (
-                        <>
-                          <span className="text-neutral-600 font-bold">·</span>
-                          <span className="text-neutral-400 font-mono">{item.name}</span>
-                        </>
+                        <span className="text-neutral-500">{item.date}</span>
                       )}
                     </div>
                     {item.comment && (
-                      <div className="mt-2 text-xs text-neutral-400 bg-[#1e1e1e] border border-[#2e2e2e]/60 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5 max-w-full">
+                      <div 
+                        className="mt-2 text-xs text-neutral-400 bg-[#1e1e1e]/80 border border-[#2e2e2e]/60 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5 max-w-full"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MessageSquare size={13} className="text-neutral-500 mt-0.5 shrink-0" />
                         <span className="italic text-neutral-300 break-words line-clamp-2 select-text">{item.comment}</span>
                       </div>
@@ -154,7 +163,16 @@ export default function RepairList({
                   </div>
 
                   {/* Right controls */}
-                  <div className="relative flex items-center gap-2">
+                  <div className="relative flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {item.contact && (
+                      <a
+                        href={`tel:${item.contact}`}
+                        className="p-1.5 rounded-full text-emerald-400 hover:text-white hover:bg-emerald-950/40 border border-[#2e2e2e]/60 transition-colors flex items-center justify-center cursor-pointer"
+                        title={`Позвонить на ${item.contact}`}
+                      >
+                        <Phone size={15} />
+                      </a>
+                    )}
                     <button
                       onClick={(e) => toggleDropdown(e, item.id)}
                       className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-[#2b2b2b] transition-colors"
@@ -166,7 +184,6 @@ export default function RepairList({
                     {/* Dropdown Menu */}
                     {activeDropdownId === item.id && (
                       <div
-                        onClick={(e) => e.stopPropagation()}
                         className={`absolute right-0 z-20 w-48 bg-[#1e1e1e] border border-[#2d2d2d] rounded-lg shadow-xl py-1 text-sm font-sans animate-in fade-in duration-100 ${
                           isNearBottom ? 'bottom-8 mb-1 origin-bottom slide-in-from-bottom-2' : 'top-8 mt-1 origin-top slide-in-from-top-2'
                         }`}
